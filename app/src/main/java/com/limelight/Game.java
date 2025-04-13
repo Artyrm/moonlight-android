@@ -1441,7 +1441,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     public boolean handleKeyUp(KeyEvent event) {
-        // --- PiP via Long Press Back ---
+        // --- PiP via Long Press Back START ---
         if (event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
             if (isBackKeyDown) { // Only process if we tracked the key down
                 // Cancel the pending PiP runnable (if any)
@@ -1455,16 +1455,15 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                     longBackPressExecuted = false; // Reset for next press
                     return true; // Event consumed
                 } else {
-                    // Short press occurred. Manually trigger the default back action.
-                    displayTransientMessage("Back key up (short press). Triggering onBackPressed()."); // Debug
-                    this.onBackPressed();
-                    return true; // Consume the event since we handled it manually
+                    // Short press occurred. Don't consume the event, let the system handle it.
+                    displayTransientMessage("Back key up (short press). Letting system handle."); // Debug
+                    return false; // <--- ИЗМЕНЕНИЕ ЗДЕСЬ: Возвращаем false
                 }
             }
             // If isBackKeyDown was false, something is wrong, let system handle it
             return false;
         }
-        // --- End PiP ---
+        // --- PiP via Long Press Back END ---
             
         // Pass-through virtual navigation keys
         if ((event.getFlags() & KeyEvent.FLAG_VIRTUAL_HARD_KEY) != 0) {
