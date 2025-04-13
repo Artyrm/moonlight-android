@@ -1457,7 +1457,7 @@ public class Game extends Activity implements SurfaceHolder.Callback,
                 } else {
                     // Short press occurred. Don't consume the event, let the system handle it.
                     displayTransientMessage("Back key up (short press). Letting system handle."); // Debug
-                    return false; // <--- ИЗМЕНЕНИЕ ЗДЕСЬ: Возвращаем false
+                    return false; 
                 }
             }
             // If isBackKeyDown was false, something is wrong, let system handle it
