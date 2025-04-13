@@ -1443,21 +1443,25 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     public boolean handleKeyUp(KeyEvent event) {
         // --- PiP via Long Press Back ---
         if (event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
-            if (isBackKeyDown) {
+            if (isBackKeyDown) { // Only process if we tracked the key down
+                // Cancel the pending PiP runnable (if any)
                 longPressBackHandler.removeCallbacks(pipRunnable);
-                isBackKeyDown = false;
+                isBackKeyDown = false; // Mark key as up
 
                 if (longBackPressExecuted) {
-                    // Long press action was executed, consume the key up.
+                    // Long press action was already executed (PiP triggered)
+                    // Consume the key up event.
                     displayTransientMessage("Back key up (long press consumed)."); // Debug
-                    longBackPressExecuted = false;
-                    return true;
+                    longBackPressExecuted = false; // Reset for next press
+                    return true; // Event consumed
                 } else {
-                    // Short press, don't consume, let default action occur.
-                    displayTransientMessage("Back key up (short press)."); // Debug
-                    return false;
+                    // Short press occurred. Manually trigger the default back action.
+                    displayTransientMessage("Back key up (short press). Triggering onBackPressed()."); // Debug
+                    this.onBackPressed();
+                    return true; // Consume the event since we handled it manually
                 }
             }
+            // If isBackKeyDown was false, something is wrong, let system handle it
             return false;
         }
         // --- End PiP ---
