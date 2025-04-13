@@ -1,45 +1,31 @@
-name: Android CI Debug Build
+name: Generate Debug Keystore
 
 on:
-  workflow_dispatch:
-  # push:
-  #   branches: [ "master" ]
+  workflow_dispatch: # Запуск вручную
 
 jobs:
-  build:
+  generate_key:
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Получаем код из репозитория И ЕГО ПОДМОДУЛИ
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive # <--- ДОБАВЛЕНО ЭТО
-
-    # 2. Устанавливаем нужную версию Java
+    # Устанавливаем Java, т.к. keytool входит в JDK
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
-        cache: gradle
 
-    # 3. Даем права на выполнение Gradle Wrapper'у
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
+    # Генерируем ключ
+    - name: Generate Debug Keystore
+      run: |
+        keytool -genkey -v -keystore ${{ github.workspace }}/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+        echo "Keystore generated."
+        ls -l ${{ github.workspace }}/debug.keystore
 
-    # 4. Собираем Debug APK с помощью Gradle
-    - name: Build with Gradle
-      run: ./gradlew assembleDebug
-
-      
-# 5. Загружаем собранный APK как артефакт
-    - name: Upload Debug APK
+    # Загружаем ключ как артефакт
+    - name: Upload Debug Keystore
       uses: actions/upload-artifact@v4
       with:
-        name: moonlight-debug-apk # Имя артефакта для скачивания
-        # Указываем путь к nonRoot версии
-        path: app/build/outputs/apk/nonRoot/debug/app-nonRoot-debug.apk 
-        retention-days: 5 # Хранить артефакт 5 дней
-
-    
+        name: debug-keystore-file # Имя артефакта
+        path: ${{ github.workspace }}/debug.keystore
+        retention-days: 1 # Хранить только 1 день (нам нужно только скачать)
