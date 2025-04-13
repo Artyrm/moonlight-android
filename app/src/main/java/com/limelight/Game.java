@@ -187,11 +187,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     public static final String EXTRA_APP_HDR = "HDR";
     public static final String EXTRA_SERVER_CERT = "ServerCert";
 
-        private static final long LONG_PRESS_BACK_THRESHOLD_MS = 750; // ms
-    private Handler longPressBackHandler;
-    private boolean isBackKeyDown = false;
-    private boolean longBackPressExecuted = false;
-
     private final Runnable pipRunnable = new Runnable() {
         @Override
         public void run() {
