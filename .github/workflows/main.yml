@@ -1,31 +1,47 @@
-name: Generate Debug Keystore
+name: Android CI Debug Build
 
 on:
-  workflow_dispatch: # Запуск вручную
+  workflow_dispatch:
 
 jobs:
-  generate_key:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-    # Устанавливаем Java, т.к. keytool входит в JDK
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
+        cache: gradle
 
-    # Генерируем ключ
-    - name: Generate Debug Keystore
-      run: |
-        keytool -genkey -v -keystore ${{ github.workspace }}/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
-        echo "Keystore generated."
-        ls -l ${{ github.workspace }}/debug.keystore
+    # --- ДОБАВЛЕНО: Декодируем и сохраняем debug.keystore из секрета ---
+    - name: Decode Debug Keystore
+      run: echo "${{ secrets.DEBUG_KEYSTORE_BASE64 }}" | base64 --decode > ${{ github.workspace }}/debug.keystore
+      # Проверка, что файл создан (опционально)
+      # run: ls -l ${{ github.workspace }}/debug.keystore
 
-    # Загружаем ключ как артефакт
-    - name: Upload Debug Keystore
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    # --- ИЗМЕНЕНО: Передаем путь и пароли из секретов в Gradle ---
+    - name: Build with Gradle
+      env:
+        DEBUG_STORE_FILE: ${{ github.workspace }}/debug.keystore
+        DEBUG_STORE_PASSWORD: ${{ secrets.DEBUG_STORE_PASSWORD }}
+        DEBUG_KEY_ALIAS: ${{ secrets.DEBUG_KEY_ALIAS }}
+        DEBUG_KEY_PASSWORD: ${{ secrets.DEBUG_KEY_PASSWORD }}
+      run: ./gradlew assembleDebug -PdebugStoreFile=$DEBUG_STORE_FILE -PdebugStorePassword=$DEBUG_STORE_PASSWORD -PdebugKeyAlias=$DEBUG_KEY_ALIAS -PdebugKeyPassword=$DEBUG_KEY_PASSWORD
+
+    # --- Загружаем ТОЛЬКО APK ---
+    - name: Upload Debug APK
       uses: actions/upload-artifact@v4
       with:
-        name: debug-keystore-file # Имя артефакта
-        path: ${{ github.workspace }}/debug.keystore
-        retention-days: 1 # Хранить только 1 день (нам нужно только скачать)
+        name: moonlight-debug-apk
+        path: app/build/outputs/apk/nonRoot/debug/app-nonRoot-debug.apk
+        retention-days: 5
