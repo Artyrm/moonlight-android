@@ -1065,6 +1065,25 @@ public class Game extends Activity implements SurfaceHolder.Callback,
             setInputGrabState(false);
         }
 
+        // Attempt to enter PiP when pausing, if conditions are met
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            prefConfig.enablePip &&
+            connected &&
+            !isFinishing() &&
+            !isInPictureInPictureMode())
+        {
+            displayTransientMessage("onPause: Attempting PiP entry..."); // Debug
+            try {
+                enterPictureInPictureMode(getPictureInPictureParams(false));
+                // Successful request, system will handle the rest via onConfigurationChanged
+                displayTransientMessage("onPause: PiP entry requested."); // Debug
+            } catch (Exception e) {
+                e.printStackTrace();
+                displayTransientMessage("onPause: Error entering PiP mode: " + e.getMessage()); // Debug
+                 // If entry failed, proceed with normal pause/stop sequence
+            }
+        }
+
         super.onPause();
     }
 
