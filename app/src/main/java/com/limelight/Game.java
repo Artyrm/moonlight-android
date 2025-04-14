@@ -59,7 +59,6 @@ import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
 import android.os.IBinder;
 import android.util.Rational;
 import android.view.Display;
@@ -109,11 +108,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     private static final int STYLUS_UP_DEAD_ZONE_RADIUS = 50;
 
     private static final int THREE_FINGER_TAP_THRESHOLD = 300;
-    
-    private static final long LONG_PRESS_BACK_THRESHOLD_MS = 1500; // ms
-    private Handler longPressBackHandler;
-    private boolean isBackKeyDown = false;
-    private boolean longBackPressExecuted = false;
 
     private ControllerHandler controllerHandler;
     private KeyboardTranslator keyboardTranslator;
@@ -187,42 +181,10 @@ public class Game extends Activity implements SurfaceHolder.Callback,
     public static final String EXTRA_APP_HDR = "HDR";
     public static final String EXTRA_SERVER_CERT = "ServerCert";
 
-    private final Runnable pipRunnable = new Runnable() {
-        @Override
-        public void run() {
-            if (isBackKeyDown && !longBackPressExecuted) {
-                displayTransientMessage("Long press Back detected. Attempting PiP..."); // Debug
-                longBackPressExecuted = true;
-
-                if (!prefConfig.enablePip) {
-                    displayTransientMessage("PiP check failed: Disabled in settings."); // Debug
-                    return;
-                }
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-                    displayTransientMessage("PiP check failed: SDK version too old."); // Debug
-                    return;
-                }
-
-                displayTransientMessage("PiP checks passed. Calling enterPictureInPictureMode..."); // Debug
-                try {
-                    enterPictureInPictureMode(getPictureInPictureParams(false));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    displayTransientMessage("Error entering PiP mode: " + e.getMessage()); // Debug
-                }
-            } else {
-                 // Optional Debug: Log why PiP didn't trigger if needed
-                 // displayTransientMessage("PiP Runnable executed but conditions not met (isBackKeyDown=" + isBackKeyDown + ", longBackPressExecuted=" + longBackPressExecuted + ")");
-            }
-        }
-    };    
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        longPressBackHandler = new Handler(Looper.getMainLooper()); // For PiP long press    
-            
         UiHelper.setLocale(this);
 
         // We don't want a title bar
@@ -759,7 +721,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
         }
     }
 
-        
     @Override
     @TargetApi(Build.VERSION_CODES.R)
     public boolean onPictureInPictureRequested() {
@@ -1346,19 +1307,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     public boolean handleKeyDown(KeyEvent event) {
-        // --- PiP via Long Press Back ---
-        if (event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
-            if (event.getRepeatCount() == 0 && !isBackKeyDown) {
-                isBackKeyDown = true;
-                longBackPressExecuted = false;
-                longPressBackHandler.postDelayed(pipRunnable, LONG_PRESS_BACK_THRESHOLD_MS);
-                displayTransientMessage("Back key down. PiP timer started."); // Debug
-            }
-            // Consume back key down here to handle on key up
-            return true;
-        }
-        // --- End PiP ---
-            
         // Pass-through virtual navigation keys
         if ((event.getFlags() & KeyEvent.FLAG_VIRTUAL_HARD_KEY) != 0) {
             return false;
@@ -1441,30 +1389,6 @@ public class Game extends Activity implements SurfaceHolder.Callback,
 
     @Override
     public boolean handleKeyUp(KeyEvent event) {
-        // --- PiP via Long Press Back START ---
-        if (event.getKeyCode() == KeyEvent.KEYCODE_BACK) {
-            if (isBackKeyDown) { // Only process if we tracked the key down
-                // Cancel the pending PiP runnable (if any)
-                longPressBackHandler.removeCallbacks(pipRunnable);
-                isBackKeyDown = false; // Mark key as up
-
-                if (longBackPressExecuted) {
-                    // Long press action was already executed (PiP triggered)
-                    // Consume the key up event.
-                    displayTransientMessage("Back key up (long press consumed)."); // Debug
-                    longBackPressExecuted = false; // Reset for next press
-                    return true; // Event consumed
-                } else {
-                    // Short press occurred. Don't consume the event, let the system handle it.
-                    displayTransientMessage("Back key up (short press). Letting system handle."); // Debug
-                    return false; 
-                }
-            }
-            // If isBackKeyDown was false, something is wrong, let system handle it
-            return false;
-        }
-        // --- PiP via Long Press Back END ---
-            
         // Pass-through virtual navigation keys
         if ((event.getFlags() & KeyEvent.FLAG_VIRTUAL_HARD_KEY) != 0) {
             return false;
